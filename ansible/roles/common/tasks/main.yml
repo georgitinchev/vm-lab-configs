@@ -68,17 +68,3 @@
       - python3
       - python3-pip
     state: present
-
-# Kyverno CLI
-- name: Install Kyverno CLI (pinned v1.17.1)
-  shell: |
-    KYVERNO_VERSION=v1.17.1
-
-    curl -L -o kyverno.tar.gz \
-      https://github.com/kyverno/kyverno/releases/download/${KYVERNO_VERSION}/kyverno-cli-linux-amd64.tar.gz
-
-    tar -xzf kyverno.tar.gz
-    chmod +x kyverno
-    mv kyverno /usr/local/bin/kyverno
-  args:
-    creates: /usr/local/bin/kyverno
