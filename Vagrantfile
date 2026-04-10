@@ -2,8 +2,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.hostname = "devops-lab"
 
-  config.vm.network "private_network", ip: "192.168.56.10"
-
   # 🟢 PARALLELS (Mac M2 → ARM)
   config.vm.provider "parallels" do |p|
     config.vm.box = "bento/ubuntu-24.04"
@@ -11,6 +9,9 @@ Vagrant.configure("2") do |config|
 
     p.memory = 6144
     p.cpus = 3
+
+    # faster networking 
+    p.update_guest_tools = true
   end
 
   # 🔵 VMWARE (Windows → AMD64)
@@ -22,10 +23,10 @@ Vagrant.configure("2") do |config|
     v.cpus = 3
   end
 
-  # Shared workspace
-  config.vm.synced_folder ".", "/home/vagrant/devops-lab"
+  config.vm.network "private_network", ip: "192.168.56.10"
 
-  # Ansible provisioning
+  config.vm.synced_folder ".", "/home/vagrant/devops-lab", disabled: true
+
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "ansible/playbook.yml"
   end
