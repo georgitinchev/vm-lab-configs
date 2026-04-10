@@ -13,6 +13,13 @@
       - apt-transport-https
     state: present
 
+# multi-arch support
+- name: Install QEMU for cross-arch support
+  apt:
+    name:
+      - qemu-user-static
+    state: present
+
 # Docker
 - name: Install Docker
   apt:
@@ -54,7 +61,7 @@
   args:
     creates: /usr/local/bin/kind
 
-# Python tooling (Chainsaw base dependency)
+# Python tooling
 - name: Install Python
   apt:
     name:
