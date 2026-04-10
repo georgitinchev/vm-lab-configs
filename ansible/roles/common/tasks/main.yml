@@ -1,0 +1,72 @@
+- name: Update apt cache
+  apt:
+    update_cache: yes
+
+- name: Install base tools
+  apt:
+    name:
+      - git
+      - curl
+      - wget
+      - unzip
+      - ca-certificates
+      - apt-transport-https
+    state: present
+
+# Docker
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Enable Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Add vagrant user to docker group
+  user:
+    name: vagrant
+    groups: docker
+    append: yes
+
+# kubectl
+- name: Install kubectl
+  shell: |
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  args:
+    creates: /usr/local/bin/kubectl
+
+# Helm
+- name: Install Helm
+  shell: |
+    curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+# kind
+- name: Install kind
+  shell: |
+    curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+    chmod +x /usr/local/bin/kind
+  args:
+    creates: /usr/local/bin/kind
+
+# Python tooling (Chainsaw base dependency)
+- name: Install Python
+  apt:
+    name:
+      - python3
+      - python3-pip
+    state: present
+
+# Kyverno CLI
+- name: Install Kyverno CLI
+  shell: |
+    curl -L https://github.com/kyverno/kyverno/releases/latest/download/kyverno-cli-linux-amd64.tar.gz -o kyverno.tar.gz
+    tar -xzf kyverno.tar.gz
+    mv kyverno /usr/local/bin/kyverno
+  args:
+    creates: /usr/local/bin/kyverno
