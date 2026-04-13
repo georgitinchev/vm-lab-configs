@@ -1,0 +1,167 @@
+- name: Detect architecture
+  shell: dpkg --print-architecture
+  register: arch
+  changed_when: false
+
+- name: Update packages
+  apt:
+    update_cache: yes
+    upgrade: dist
+
+- name: GNOME Desktop
+  apt:
+    name: [ubuntu-desktop, gnome-shell, gdm3]
+    state: present
+
+- name: Base tools
+  apt:
+    name:
+      - git
+      - curl
+      - wget
+      - unzip
+      - ca-certificates
+      - apt-transport-https
+      - build-essential
+      - net-tools
+      - vim
+      - htop
+      - jq
+      - tree
+    state: present
+
+- name: Python
+  apt:
+    name: [python3, python3-pip, python3-venv, python3-dev]
+    state: present
+
+- name: Docker
+  apt:
+    name: docker.io
+    state: present
+
+- name: Start Docker
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Add vagrant to docker group
+  user:
+    name: vagrant
+    groups: docker
+    append: yes
+
+- name: Docker Compose
+  shell: curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+  args:
+    creates: /usr/local/bin/docker-compose
+
+- name: kubectl
+  shell: |
+    ARCH="{{ arch.stdout }}"
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/${ARCH}/kubectl"
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+  args:
+    creates: /usr/local/bin/kubectl
+
+- name: Helm
+  shell: curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+  args:
+    creates: /usr/local/bin/helm
+
+- name: kind
+  shell: |
+    ARCH="{{ arch.stdout }}"
+    curl -Lo /usr/local/bin/kind https://kind.sigs.k8s.io/dl/latest/kind-linux-${ARCH}
+    chmod +x /usr/local/bin/kind
+  args:
+    creates: /usr/local/bin/kind
+
+- name: Terraform
+  shell: |
+    ARCH="{{ arch.stdout }}"
+    if [ "$ARCH" = "arm64" ]; then
+      TARCH="arm64"
+    else
+      TARCH="amd64"
+    fi
+    curl -fsSL https://releases.hashicorp.com/terraform/1.7.0/terraform_1.7.0_linux_${TARCH}.zip -o /tmp/terraform.zip
+    unzip -o /tmp/terraform.zip -d /usr/local/bin
+    chmod +x /usr/local/bin/terraform
+    rm /tmp/terraform.zip
+  args:
+    creates: /usr/local/bin/terraform
+  ignore_errors: yes
+  timeout: 30
+
+- name: Ansible
+  apt:
+    name: ansible
+    state: present
+
+- name: ArgoCD
+  shell: |
+    ARCH="{{ arch.stdout }}"
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-${ARCH}
+    chmod +x /usr/local/bin/argocd
+  args:
+    creates: /usr/local/bin/argocd
+
+- name: AWS CLI
+  shell: pip3 install --break-system-packages awscli
+  args:
+    creates: /usr/local/bin/aws
+  ignore_errors: yes
+
+- name: gcloud
+  shell: |
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+    apt-get update && apt-get install -y google-cloud-sdk
+  args:
+    creates: /usr/bin/gcloud
+  ignore_errors: yes
+  timeout: 60
+
+- name: VS Code
+  snap:
+    name: code
+    classic: yes
+  ignore_errors: yes
+
+- name: GDM autologin
+  lineinfile:
+    path: /etc/gdm3/custom.conf
+    line: AutomaticLoginEnable = true
+    regexp: "^AutomaticLoginEnable"
+    insertafter: '^\[daemon\]'
+    state: present
+
+- name: GDM autologin user
+  lineinfile:
+    path: /etc/gdm3/custom.conf
+    line: AutomaticLogin = vagrant
+    regexp: "^AutomaticLogin"
+    insertafter: '^\[daemon\]'
+    state: present
+
+- name: Start GDM
+  systemd:
+    name: gdm3
+    enabled: yes
+    state: started
+
+- name: Git config
+  shell: |
+    git config --global user.name "DevOps" || true
+    git config --global user.email "devops@lab" || true
+  become_user: vagrant
+
+- name: Workspace dir
+  file:
+    path: /home/vagrant/workspace
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: "0755"
