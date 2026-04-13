@@ -1,32 +1,54 @@
+if Vagrant::Util::Platform.windows?
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_workstation'
+  ENV['BOX_ARCH'] = 'amd64'
+elsif Vagrant::Util::Platform.darwin?
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_fusion'
+  ENV['BOX_ARCH'] = 'arm64'
+end
+
+vm_type = ENV['VM_TYPE'] || 'ubuntu'
+box_arch = ENV['BOX_ARCH']
+is_fusion = Vagrant::Util::Platform.darwin?
+
 Vagrant.configure("2") do |config|
-
-  config.vm.hostname = "devops-lab"
-  config.vm.network "private_network", ip: "192.168.56.10"
-  config.vm.synced_folder ".", "/home/vagrant/devops-lab", disabled: true
-
-  # 🟢 PARALLELS (Mac M2 → ARM)
-  config.vm.provider "parallels" do |p|
+  if vm_type == 'ubuntu'
     config.vm.box = "bento/ubuntu-24.04"
     config.vm.box_version = "202510.26.0"
-
-    p.memory = 6144
-    p.cpus = 3
-
-    p.update_guest_tools = false
+    config.vm.hostname = "devops-lab"
+    config.vm.network "private_network", ip: "192.168.56.10"
+    mem, cpu = "8192", "4"
+  elsif vm_type == 'kali'
+    if box_arch == 'arm64'
+      config.vm.box = "sT0wn/kalilinux_arm64"
+      config.vm.box_version = "2025.4"
+    else
+      config.vm.box = "kalilinux/rolling"
+      config.vm.box_version = "2026.1.0"
+    end
+    config.vm.hostname = "kali-pentest"
+    config.vm.network "private_network", ip: "192.168.56.20"
+    mem, cpu = "6144", "3"
   end
 
-  # 🔵 VMWARE (Windows → AMD64)
-  config.vm.provider "vmware_desktop" do |v|
-    config.vm.box = "bento/ubuntu-24.04"
-    config.vm.box_version = "202510.26.0"
+  config.vm.synced_folder ".", "/tmp/lab", disabled: true
 
-    v.memory = 6144
-    v.cpus = 3
+  if is_fusion
+    config.vm.provider "vmware_fusion" do |v|
+      v.vmx["memsize"] = mem
+      v.vmx["numvcpus"] = cpu
+      v.vmx["disk.enableUUID"] = "TRUE"
+    end
+  else
+    config.vm.provider "vmware_workstation" do |v|
+      v.vmx["memsize"] = mem
+      v.vmx["numvcpus"] = cpu
+      v.vmx["disk.enableUUID"] = "TRUE"
+    end
   end
 
-  # ansible provisioner
   config.vm.provision "ansible" do |ansible|
-    ansible.playbook = "ansible/playbook.yml"
+    ansible.playbook = "ansible/#{vm_type}.yml"
+    ansible.compatibility_mode = "2.0"
+    ansible.become = (vm_type == 'ubuntu')
   end
-
 end
