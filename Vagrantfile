@@ -1,4 +1,7 @@
-if Vagrant::Util::Platform.windows?
+# Detect WSL (reports as Linux but needs Windows/workstation treatment)
+is_wsl = File.exist?("/proc/version") && File.read("/proc/version").downcase.include?("microsoft")
+
+if Vagrant::Util::Platform.windows? || is_wsl
   ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_workstation'
   ENV['BOX_ARCH'] = 'amd64'
 elsif Vagrant::Util::Platform.darwin?
