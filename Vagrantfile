@@ -49,9 +49,21 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  config.vm.provision "ansible" do |ansible|
+  # No-op guest round-trip: forces Vagrant to refresh its cached ssh_info before
+  # the ansible_local provisioner reads it. Without this, ansible_local can hit
+  # a nil ssh_info race (Vagrant core bug) immediately after the private_network
+  # step reconfigures the guest's adapters.
+  config.vm.provision "shell", inline: "true"
+
+  # Runs on the guest, not the host — Ansible has no native Windows control-node
+  # support, so provisioning from a plain Windows/PowerShell host would fail here.
+  config.vm.provision "file", source: "ansible", destination: "/tmp/ansible"
+
+  config.vm.provision "ansible_local" do |ansible|
     ansible.playbook = "ansible/#{vm_type}.yml"
+    ansible.provisioning_path = "/tmp"
     ansible.compatibility_mode = "2.0"
+    ansible.install = true
     ansible.become = (vm_type == 'ubuntu')
   end
 end
