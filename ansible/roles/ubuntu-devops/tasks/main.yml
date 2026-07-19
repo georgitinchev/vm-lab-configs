@@ -124,10 +124,36 @@
   ignore_errors: yes
   timeout: 60
 
-- name: VS Code
+- name: VS Code (arm64/Mac hosts — snap module crashes on arm64 channel data)
+  when: arch.stdout == "arm64"
+  block:
+    - name: VS Code apt prerequisites
+      apt:
+        name: gnupg
+        state: present
+
+    - name: VS Code apt key
+      shell: curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
+      args:
+        creates: /usr/share/keyrings/packages.microsoft.gpg
+
+    - name: VS Code apt repo
+      apt_repository:
+        repo: "deb [arch=arm64,armhf,amd64 signed-by=/usr/share/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main"
+        filename: vscode
+        state: present
+
+    - name: Install VS Code
+      apt:
+        name: code
+        state: present
+        update_cache: yes
+
+- name: VS Code (snap, non-arm64 hosts)
   snap:
     name: code
     classic: yes
+  when: arch.stdout != "arm64"
   ignore_errors: yes
 
 - name: GDM autologin
