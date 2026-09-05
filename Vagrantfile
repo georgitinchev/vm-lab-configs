@@ -1,22 +1,28 @@
 # Detect WSL (reports as Linux but needs Windows/workstation treatment)
 is_wsl = File.exist?("/proc/version") && File.read("/proc/version").downcase.include?("microsoft")
+is_linux = Vagrant::Util::Platform.linux? && !is_wsl
+is_fusion = Vagrant::Util::Platform.darwin?
 
 if Vagrant::Util::Platform.windows? || is_wsl
   ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_workstation'
   ENV['BOX_ARCH'] = 'amd64'
-elsif Vagrant::Util::Platform.darwin?
+elsif is_fusion
   ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_fusion'
   ENV['BOX_ARCH'] = 'arm64'
+elsif is_linux
+  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+  ENV['BOX_ARCH'] = 'amd64'
 end
 
 vm_type = ENV['VM_TYPE'] || 'ubuntu'
 box_arch = ENV['BOX_ARCH']
-is_fusion = Vagrant::Util::Platform.darwin?
 
 Vagrant.configure("2") do |config|
   if vm_type == 'ubuntu'
     config.vm.box = "bento/ubuntu-24.04"
-    config.vm.box_version = "202510.26.0"
+    # bento/ubuntu-24.04 202510.26.0 (Windows/macOS) has no libvirt build —
+    # pin an older version that does for the Linux/libvirt path.
+    config.vm.box_version = is_linux ? "202502.21.0" : "202510.26.0"
     config.vm.hostname = "devops-lab"
     config.vm.network "private_network", ip: "192.168.56.10"
     mem, cpu = "8192", "4"
@@ -40,6 +46,11 @@ Vagrant.configure("2") do |config|
       v.vmx["memsize"] = mem
       v.vmx["numvcpus"] = cpu
       v.vmx["disk.enableUUID"] = "TRUE"
+    end
+  elsif is_linux
+    config.vm.provider "libvirt" do |v|
+      v.memory = mem.to_i
+      v.cpus = cpu.to_i
     end
   else
     config.vm.provider "vmware_workstation" do |v|

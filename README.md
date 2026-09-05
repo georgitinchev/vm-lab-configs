@@ -1,10 +1,11 @@
 # VM Lab
 
-DevOps & Pentest environments via Vagrant on VMware Fusion (Mac) or Workstation (Windows).
+DevOps & Pentest environments via Vagrant on VMware Fusion (Mac), VMware
+Workstation (Windows), or libvirt/KVM (Linux).
 
 Provisioning runs entirely on the guest (`ansible_local`) — the host only needs
-Vagrant and VMware installed, no Ansible, no WSL2, no port-forwarding. Same path
-on both platforms.
+Vagrant and a hypervisor installed, no Ansible, no WSL2, no port-forwarding.
+Same path on all three platforms.
 
 ## Prerequisites
 
@@ -20,6 +21,28 @@ on both platforms.
 - vagrant-vmware-desktop plugin, from PowerShell: `vagrant plugin install vagrant-vmware-desktop`
 
 Run everything from a plain PowerShell prompt — no WSL2 required.
+
+### Linux
+
+```bash
+sudo apt install qemu-kvm libvirt-daemon-system libvirt-clients virtinst
+sudo usermod -aG libvirt,kvm $USER   # log out/in for this to take effect
+vagrant plugin install vagrant-libvirt
+```
+
+No separate hypervisor app to install — libvirt/QEMU/KVM are native to the
+Linux kernel. Vagrant talks to the local libvirt daemon (`qemu:///system`)
+directly.
+
+> **Status: written but not yet run on real hardware.** The Windows/macOS
+> paths are proven end-to-end (see `homelab-platform`'s README for the bug
+> hunt that got them there); this Linux/libvirt path hasn't had that pass
+> yet. One known thing to watch for: the `private_network` static IPs
+> (`192.168.56.x`) were empirically matched to this specific Windows
+> machine's VMware vmnet subnet — libvirt creates its own network per
+> requested subnet rather than needing a pre-existing matching adapter, so
+> it's less likely to hit that exact bug, but worth confirming with a real
+> `vagrant up` before trusting it.
 
 ---
 
@@ -42,6 +65,14 @@ vagrant up
 # File > Open in VMware Workstation > the .vmx path printed above
 ```
 
+Linux:
+```bash
+VM_TYPE=ubuntu vagrant up
+```
+`export-vm.sh`/`.ps1` are VMware-specific (they detach a VM into a standalone
+`.vmx`) — no libvirt equivalent yet. On Linux the VM just stays Vagrant-managed;
+use `virsh` directly if you need to inspect/export the underlying domain.
+
 ### Kali Pentest
 
 macOS:
@@ -57,6 +88,11 @@ $env:VM_TYPE = "kali"
 vagrant up
 .\scripts\export-vm.ps1 -VmType kali
 # File > Open in VMware Workstation > the .vmx path printed above
+```
+
+Linux:
+```bash
+VM_TYPE=kali vagrant up
 ```
 
 Login: `vagrant` / `kali` (auto-login with GNOME/Xfce GUI)
@@ -89,6 +125,14 @@ $env:VM_TYPE = "ubuntu"; vagrant up   # Create & provision
 vagrant ssh                           # SSH
 vagrant halt                          # Stop
 vagrant destroy                       # Delete
+```
+
+Linux:
+```bash
+VM_TYPE=ubuntu vagrant up      # Create & provision
+vagrant ssh                    # SSH
+vagrant halt                   # Stop
+vagrant destroy                # Delete
 ```
 
 ---
