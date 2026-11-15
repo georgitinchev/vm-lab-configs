@@ -28,6 +28,8 @@ jobs:
           ansible-playbook --syntax-check -i localhost, ansible/kali.yml
 
       - name: Vagrantfile
+        env:
+          VAGRANT_DEFAULT_PROVIDER: docker
         run: |
           VM_TYPE=ubuntu vagrant validate --ignore-provider
           VM_TYPE=kali vagrant validate --ignore-provider

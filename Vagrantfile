@@ -2,13 +2,13 @@ is_linux = Vagrant::Util::Platform.linux?
 is_fusion = Vagrant::Util::Platform.darwin?
 
 if Vagrant::Util::Platform.windows?
-  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_workstation'
+  ENV['VAGRANT_DEFAULT_PROVIDER'] ||= 'vmware_workstation'
   ENV['BOX_ARCH'] = 'amd64'
 elsif is_fusion
-  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_fusion'
+  ENV['VAGRANT_DEFAULT_PROVIDER'] ||= 'vmware_fusion'
   ENV['BOX_ARCH'] = 'arm64'
 elsif is_linux
-  ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+  ENV['VAGRANT_DEFAULT_PROVIDER'] ||= 'libvirt'
   ENV['BOX_ARCH'] = 'amd64'
 end
 
