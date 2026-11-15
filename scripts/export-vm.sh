@@ -3,14 +3,7 @@ set -e
 
 VM_TYPE=${1:-ubuntu}
 
-# Detect WSL and point export dir to Windows filesystem so VMware can open it
-if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
-  # Derive Windows username from the mount point
-  WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')
-  EXPORT_DIR="/mnt/c/Users/$WIN_USER/VMware-Labs"
-else
-  EXPORT_DIR="$HOME/VMware-Labs"
-fi
+EXPORT_DIR="$HOME/VMware-Labs"
 
 if [ ! -d ".vagrant/machines/default/vmware_fusion" ] && [ ! -d ".vagrant/machines/default/vmware_workstation" ]; then
   echo "Error: VM not found. Run: VM_TYPE=$VM_TYPE vagrant up"
@@ -48,9 +41,7 @@ fi
 
 echo "✓ Exported: $VMX"
 echo ""
-echo "Open in VMware:"
-echo "  macOS: File > Open > $VMX"
-echo "  Windows: File > Open > $VMX"
+echo "Open in VMware: File > Open > $VMX"
 echo ""
 
 read -p "Clean up Vagrant files? (y/n) " -n 1 -r

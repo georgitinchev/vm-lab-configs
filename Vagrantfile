@@ -1,9 +1,7 @@
-# Detect WSL (reports as Linux but needs Windows/workstation treatment)
-is_wsl = File.exist?("/proc/version") && File.read("/proc/version").downcase.include?("microsoft")
-is_linux = Vagrant::Util::Platform.linux? && !is_wsl
+is_linux = Vagrant::Util::Platform.linux?
 is_fusion = Vagrant::Util::Platform.darwin?
 
-if Vagrant::Util::Platform.windows? || is_wsl
+if Vagrant::Util::Platform.windows?
   ENV['VAGRANT_DEFAULT_PROVIDER'] = 'vmware_workstation'
   ENV['BOX_ARCH'] = 'amd64'
 elsif is_fusion
@@ -41,23 +39,19 @@ Vagrant.configure("2") do |config|
 
   config.vm.synced_folder ".", "/tmp/lab", disabled: true
 
-  if is_fusion
-    config.vm.provider "vmware_fusion" do |v|
+  # Full clone, not linked: the exported VM must not depend on the box in ~/.vagrant.d
+  ["vmware_fusion", "vmware_workstation"].each do |p|
+    config.vm.provider p do |v|
+      v.linked_clone = false
       v.vmx["memsize"] = mem
       v.vmx["numvcpus"] = cpu
       v.vmx["disk.enableUUID"] = "TRUE"
     end
-  elsif is_linux
-    config.vm.provider "libvirt" do |v|
-      v.memory = mem.to_i
-      v.cpus = cpu.to_i
-    end
-  else
-    config.vm.provider "vmware_workstation" do |v|
-      v.vmx["memsize"] = mem
-      v.vmx["numvcpus"] = cpu
-      v.vmx["disk.enableUUID"] = "TRUE"
-    end
+  end
+
+  config.vm.provider "libvirt" do |v|
+    v.memory = mem.to_i
+    v.cpus = cpu.to_i
   end
 
   # No-op guest round-trip: forces Vagrant to refresh its cached ssh_info before

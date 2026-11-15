@@ -134,8 +134,11 @@
         state: present
 
     - name: VS Code apt key
-      shell: curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/packages.microsoft.gpg
+      shell: |
+        set -o pipefail
+        curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes -o /usr/share/keyrings/packages.microsoft.gpg
       args:
+        executable: /bin/bash
         creates: /usr/share/keyrings/packages.microsoft.gpg
 
     - name: VS Code apt repo
@@ -157,21 +160,34 @@
   when: arch.stdout != "arm64"
   ignore_errors: yes
 
-- name: GDM autologin
-  lineinfile:
-    path: /etc/gdm3/custom.conf
-    line: AutomaticLoginEnable = true
-    regexp: "^AutomaticLoginEnable"
-    insertafter: '^\[daemon\]'
+# open-vm-tools-desktop reconnects the display after resume, without it the window goes black
+- name: VM desktop tools
+  apt:
+    name: open-vm-tools-desktop
     state: present
 
-- name: GDM autologin user
+- name: No release upgrade popup, box stays on 24.04
+  lineinfile:
+    path: /etc/update-manager/release-upgrades
+    regexp: '^Prompt='
+    line: Prompt=never
+
+- name: Drop first-login welcome wizard
+  apt:
+    name: gnome-initial-setup
+    state: absent
+
+# Xorg instead of Wayland, more reliable on VMware
+- name: GDM autologin + Xorg
   lineinfile:
     path: /etc/gdm3/custom.conf
-    line: AutomaticLogin = vagrant
-    regexp: "^AutomaticLogin"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     insertafter: '^\[daemon\]'
-    state: present
+  loop:
+    - { regexp: '^#?\s*AutomaticLoginEnable\s*=', line: "AutomaticLoginEnable = true" }
+    - { regexp: '^#?\s*AutomaticLogin\s*=', line: "AutomaticLogin = vagrant" }
+    - { regexp: '^#?\s*WaylandEnable\s*=', line: "WaylandEnable = false" }
 
 - name: Start GDM
   systemd:
