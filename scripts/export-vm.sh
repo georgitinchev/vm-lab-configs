@@ -39,6 +39,9 @@ if [ -z "$VMX" ]; then
   exit 1
 fi
 
+# Name it in the VMware library instead of "vm-lab-configs: default"
+sed -i.bak "s/^displayname = .*/displayname = \"$VM_TYPE-lab\"/I" "$VMX" && rm -f "$VMX.bak"
+
 echo "✓ Exported: $VMX"
 echo ""
 echo "Open in VMware: File > Open > $VMX"

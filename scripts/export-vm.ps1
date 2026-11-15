@@ -31,6 +31,8 @@ if (-not $Vmx) {
     exit 1
 }
 
+(Get-Content $Vmx.FullName) -replace '^displayname = .*', "displayname = `"$VmType-lab`"" | Set-Content $Vmx.FullName
+
 Write-Host "Exported: $($Vmx.FullName)"
 Write-Host ""
 Write-Host "Open in VMware: File > Open > $($Vmx.FullName)"
