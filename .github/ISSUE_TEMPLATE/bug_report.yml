@@ -1,0 +1,30 @@
+name: Bug report
+description: Something is broken
+labels: [bug]
+body:
+  - type: dropdown
+    id: host
+    attributes:
+      label: Host and hypervisor
+      options:
+        - macOS / VMware Fusion
+        - Windows / VMware Workstation
+        - Linux / libvirt
+    validations:
+      required: true
+  - type: dropdown
+    id: vm
+    attributes:
+      label: VM
+      options:
+        - ubuntu
+        - kali
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Command you ran and the error output.
+    validations:
+      required: true
